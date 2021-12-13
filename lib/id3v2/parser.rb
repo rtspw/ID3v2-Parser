@@ -4,6 +4,9 @@ require_relative "records"
 class BadFormatException < StandardError
 end
 
+class UnsupportedException < StandardError
+end
+
 class Parser
   def self.parse(file_handle)
     header = parse_header(file_handle)
@@ -14,6 +17,9 @@ class Parser
     header = Records::Header.read(file_handle)
     if (header.file_id != 'ID3')
       raise BadFormatException.new "Expected file to start with 'ID3' but was actually '#{header.file_id}'"
+    end
+    if (header.flags.unsync == 1)
+      raise UnsupportedException.new "Unsynchronization is not supported"
     end
     return header
   end
