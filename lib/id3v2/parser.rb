@@ -10,7 +10,11 @@ end
 class Parser
   def self.parse(file_handle)
     header = parse_header(file_handle)
+    extended_header = if header.flags.extended_header == 1
+      parse_extended_header(file_handle)
+    end
     puts header
+    puts extended_header
   end
 
   def self.parse_header(file_handle)
@@ -22,5 +26,13 @@ class Parser
       raise UnsupportedException.new "Unsynchronization is not supported"
     end
     header
+  end
+
+  def self.parse_extended_header(file_handle)
+    extended_header = Records::ExtendedHeader.read(file_handle)
+    if extended_header.extended_header_size != 6 && extended_header.extended_header_size != 10
+      raise BadFormatException.new "Extended header size should by 6 or 10 but was actually '#{extended_header.extended_header_size}"
+    end
+    extended_header
   end
 end
