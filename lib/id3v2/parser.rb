@@ -8,6 +8,25 @@ class UnsupportedException < StandardError
 end
 
 class Parser
+
+  @@encodings = {
+    0 => 'ASCII',
+    1 => 'UTF-16',
+    2 => 'UTF-16BE',
+    3 => 'UTF-8',
+  }
+
+  def self.convert_to_utf8(raw:, encoding:)
+    case encoding
+    when 'ASCII'
+      raw.strip
+    when 'UTF-16'
+      raw.force_encoding('UTF-16').encode('UTF-8').strip
+    else
+      raw
+    end
+  end
+
   def self.parse(file_handle)
     header = parse_header(file_handle)
     extended_header = if header.flags.extended_header == 1
