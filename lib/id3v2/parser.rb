@@ -27,13 +27,36 @@ class Parser
     end
   end
 
+  def self.parse_general_text_information_frame(file_handle:, frame_header:)
+    encoding_number = BinData::Uint8be.read(file_handle)
+    if encoding_number > 2
+      raise BadFormatException.new "Encoding number should be < 2 but got '#{encoding_number}'"
+    end
+    encoding = @@encodings[encoding_number]
+    content_length = frame_header.frame_size - 1
+    raw_content = BinData::String.read(file_handle, length: content_length)
+    content = convert_to_utf8(raw: raw_content, encoding: encoding)
+    return { encoding: encoding, content: content }
+  end
+
+  @@frame_parsers = {
+    :TALB => method(:parse_general_text_information_frame)
+  }
+
   def self.parse(file_handle)
+    frames = {}
     header = parse_header(file_handle)
     extended_header = if header.flags.extended_header == 1
       parse_extended_header(file_handle)
     end
-    puts header
-    puts extended_header
+    frame_header = parse_frame_header(file_handle)
+    frame_symbol = frame_header.frame_id.to_sym
+    frames[frame_symbol] = if @@frame_parsers.has_key? frame_symbol
+      frame_body = @@frame_parsers[frame_symbol].call(file_handle: file_handle, frame_header: frame_header)
+      [frame_header, frame_body]
+    else
+      raise BadFormatException.new "Invalid frame id '#{frame_header.frame_id}'"
+    end
   end
 
   def self.parse_header(file_handle)
@@ -53,5 +76,10 @@ class Parser
       raise BadFormatException.new "Extended header size should by 6 or 10 but was actually '#{extended_header.extended_header_size}"
     end
     extended_header
+  end
+
+  def self.parse_frame_header(file_handle)
+    frame_header = Records::FrameHeader.read(file_handle)
+    frame_header
   end
 end
