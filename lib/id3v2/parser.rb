@@ -15,12 +15,12 @@ class Parser
 
   def self.parse_header(file_handle)
     header = Records::Header.read(file_handle)
-    if (header.file_id != 'ID3')
+    if header.file_id != 'ID3'
       raise BadFormatException.new "Expected file to start with 'ID3' but was actually '#{header.file_id}'"
     end
-    if (header.flags.unsync == 1)
+    if header.flags.unsync == 1
       raise UnsupportedException.new "Unsynchronization is not supported"
     end
-    return header
+    header
   end
 end
