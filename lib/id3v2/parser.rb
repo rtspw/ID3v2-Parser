@@ -39,24 +39,92 @@ class Parser
     return { encoding: encoding, content: content }
   end
 
+  def self.parse_slash_separated_text_information_frame(file_handle:, frame_header:)
+    result = parse_general_text_information_frame(file_handle: file_handle, frame_header: frame_header)
+    result[:content] = result[:content].split '/'
+    result
+  end
+
+  def self.parse_text_information_frame_as_number(file_handle:, frame_header:)
+    result = parse_general_text_information_frame(file_handle: file_handle, frame_header: frame_header)
+    result[:content] = Integer(result[:content])
+    result
+  end
+
+  def self.parse_text_information_frame_as_year(file_handle:, frame_header:)
+    result = parse_general_text_information_frame(file_handle: file_handle, frame_header: frame_header)
+    if result[:content].length != 4
+      raise BadFormatException.new "Could not parse year '#{result.content}' in frame '#{result.frame_id.to_s}'"
+    end
+    result[:content] = Integer(result[:content])
+    result
+  end
+
   @@frame_parsers = {
-    :TALB => method(:parse_general_text_information_frame)
+    :TALB => method(:parse_general_text_information_frame),
+    :TBPM => method(:parse_text_information_frame_as_number),
+    :TCOM => method(:parse_slash_separated_text_information_frame),
+    :TCON => method(:parse_general_text_information_frame), # incomplete
+    :TCOP => method(:parse_general_text_information_frame),
+    :TDAT => method(:parse_general_text_information_frame), # incomplete
+    :TDLY => method(:parse_text_information_frame_as_number), # incomplete
+    :TENC => method(:parse_general_text_information_frame),
+    :TEXT => method(:parse_slash_separated_text_information_frame),
+    :TFLT => method(:parse_general_text_information_frame), # incomplete
+    :TIME => method(:parse_general_text_information_frame), # incomplete
+    :TIT1 => method(:parse_general_text_information_frame),
+    :TIT2 => method(:parse_general_text_information_frame),
+    :TIT3 => method(:parse_general_text_information_frame),
+    :TKEY => method(:parse_general_text_information_frame), # incomplete
+    :TLAN => method(:parse_general_text_information_frame),
+    :TLEN => method(:parse_text_information_frame_as_number),
+    :TMED => method(:parse_general_text_information_frame), # incomplete
+    :TOAL => method(:parse_general_text_information_frame),
+    :TOFN => method(:parse_general_text_information_frame),
+    :TOLY => method(:parse_slash_separated_text_information_frame),
+    :TOPE => method(:parse_slash_separated_text_information_frame),
+    :TORY => method(:parse_text_information_frame_as_year), # incomplete
+    :TOWN => method(:parse_general_text_information_frame),
+    :TPE1 => method(:parse_slash_separated_text_information_frame),
+    :TPE2 => method(:parse_general_text_information_frame),
+    :TPE3 => method(:parse_general_text_information_frame),
+    :TPE4 => method(:parse_general_text_information_frame),
+    :TPOS => method(:parse_general_text_information_frame), # incomplete
+    :TPUB => method(:parse_general_text_information_frame),
+    :TRCK => method(:parse_general_text_information_frame), # incomplete
+    :TRDA => method(:parse_general_text_information_frame),
+    :TRSN => method(:parse_general_text_information_frame),
+    :TRSO => method(:parse_general_text_information_frame),
+    :TSIZ => method(:parse_text_information_frame_as_number), # incomplete
+    :TSRC => method(:parse_general_text_information_frame), # incomplete
+    :TSSE => method(:parse_general_text_information_frame),
+    :TYER => method(:parse_text_information_frame_as_year), # incomplete
+    :TDRC => method(:parse_text_information_frame_as_year), # NOT IN SPEC?! Appears to be the same as TYER
   }
 
   def self.parse(file_handle)
     frames = {}
     header = parse_header(file_handle)
+    bits_remaining = header.tag_size
     extended_header = if header.flags.extended_header == 1
-      parse_extended_header(file_handle)
+      extended_header = parse_extended_header(file_handle)
+      bits_remaining -= extended_header.extended_header_size
+      extended_header
     end
-    frame_header = parse_frame_header(file_handle)
-    frame_symbol = frame_header.frame_id.to_sym
-    frames[frame_symbol] = if @@frame_parsers.has_key? frame_symbol
-      frame_body = @@frame_parsers[frame_symbol].call(file_handle: file_handle, frame_header: frame_header)
-      [frame_header, frame_body]
-    else
-      raise BadFormatException.new "Invalid frame id '#{frame_header.frame_id}'"
+
+    while bits_remaining > 0 do
+      frame_header = parse_frame_header(file_handle)
+      frame_symbol = frame_header.frame_id.to_sym
+      frames[frame_symbol] =
+        if @@frame_parsers.has_key? frame_symbol
+          frame_body = @@frame_parsers[frame_symbol].call(file_handle: file_handle, frame_header: frame_header)
+          [frame_header, frame_body]
+        else
+          raise BadFormatException.new "Invalid frame id '#{frame_header.frame_id}'"
+        end
+      bits_remaining -= (frame_header.frame_size + 10) * 4
     end
+    pp frames
   end
 
   def self.parse_header(file_handle)
