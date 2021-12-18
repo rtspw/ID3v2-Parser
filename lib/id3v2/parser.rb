@@ -109,7 +109,7 @@ class Parser
     :TCON => method(:parse_general_text_information_frame), # incomplete
     :TCOP => method(:parse_general_text_information_frame),
     :TDAT => method(:parse_general_text_information_frame), # incomplete
-    :TDLY => method(:parse_text_information_frame_as_number), # incomplete
+    :TDLY => method(:parse_text_information_frame_as_number),
     :TENC => method(:parse_general_text_information_frame),
     :TEXT => method(:parse_slash_separated_text_information_frame),
     :TFLT => method(:parse_TFLT),
