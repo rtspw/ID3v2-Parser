@@ -13,7 +13,14 @@ module Records
       bit1 :experimental
       resume_byte_alignment
     end
-    uint32 :tag_size__
-    virtual :tag_size, :value => -> { tag_size__ * 4 }
+    array :tag_size__, :type => :bit1, :initial_length => 32
+    virtual :tag_size, :value => -> {
+      bit_arr = tag_size__.to_a
+      bit_arr[0] = 'x'
+      bit_arr[8] = 'x'
+      bit_arr[16] = 'x'
+      bit_arr[24] = 'x'
+      return Integer(bit_arr.join('').gsub('x', ''), 2)
+    }
   end
 end
