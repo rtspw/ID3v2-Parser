@@ -32,7 +32,23 @@ describe Parser do
           :extended_header => 0,
           :experimental => 0,
         },
-        :tag_size => 60,
+        :tag_size => 15,
+      )
+      file_handle.close
+    end
+    it "should parse the length field when it occupies multiple bytes" do
+      file_name = File.join(File.dirname(__FILE__), "binaries", "long_tag.mp3")
+      file_handle = File.open file_name
+      expect(Parser::parse_header(file_handle)).to eq(
+        :file_id => 'ID3',
+        :major_version => 3,
+        :revision_number => 0,
+        :flags => {
+          :unsync => 0,
+          :extended_header => 0,
+          :experimental => 0,
+        },
+        :tag_size => 0b1100101010110,
       )
       file_handle.close
     end
