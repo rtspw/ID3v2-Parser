@@ -42,13 +42,13 @@ class Parser
   def self.parse_slash_separated_text_information_frame(file_handle:, frame_header:)
     result = parse_general_text_information_frame(file_handle: file_handle, frame_header: frame_header)
     result[:content] = result[:content].split '/'
-    result
+    return result
   end
 
   def self.parse_text_information_frame_as_number(file_handle:, frame_header:)
     result = parse_general_text_information_frame(file_handle: file_handle, frame_header: frame_header)
     result[:content] = Integer(result[:content])
-    result
+    return result
   end
 
   def self.parse_text_information_frame_as_year(file_handle:, frame_header:)
@@ -57,7 +57,7 @@ class Parser
       raise BadFormatException.new "Could not parse year '#{result.content}' in frame '#{result.frame_id.to_s}'"
     end
     result[:content] = Integer(result[:content])
-    result
+    return result
   end
 
   @@frame_parsers = {
@@ -125,6 +125,7 @@ class Parser
       bits_remaining -= (frame_header.frame_size + 10) * 4
     end
     pp frames
+      bits_remaining -= (frame_header.frame_size + 10)
   end
 
   def self.parse_header(file_handle)
