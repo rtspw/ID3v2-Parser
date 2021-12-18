@@ -162,8 +162,9 @@ class Parser
       bits_remaining -= extended_header.extended_header_size
       extended_header
     end
-    while bits_remaining > 0 do
+    while bits_remaining >= 10 do
       frame_header = parse_frame_header(file_handle)
+      break if frame_header.frame_id == "\x00\x00\x00\x00"
       frame_symbol = frame_header.frame_id.to_sym
       frame_info =
         if @@frame_parsers.has_key? frame_symbol
