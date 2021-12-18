@@ -16,6 +16,16 @@ class Parser
     3 => 'UTF-8',
   }
 
+  @@file_types = {
+    '/1' => 'MPEG 1/2 layer I',
+    '/2' => 'MPEG 1/2 layer II',
+    '/3' => 'MPEG 1/2 layer III',
+    '/2.5' => 'MPEG 2.5',
+    '/AAC' => 'Advanced audio compression',
+    'VQF' => 'Transform-domain Weighted Interleave Vector Quantization',
+    'PCM' => 'Pulse Code Modulated audio',
+  }
+
   def self.convert_to_utf8(raw:, encoding:)
     case encoding
     when 'ASCII'
@@ -84,6 +94,14 @@ class Parser
     return content
   end
 
+  def self.parse_TFLT(file_handle:, frame_header:)
+    result = parse_general_text_information_frame(file_handle: file_handle, frame_header: frame_header)
+    if @@file_types.has_key? result[:content]
+      result[:content] = @@file_types[result[:content]]
+    end
+    return result
+  end
+
   @@frame_parsers = {
     :TALB => method(:parse_general_text_information_frame),
     :TBPM => method(:parse_text_information_frame_as_number),
@@ -94,7 +112,7 @@ class Parser
     :TDLY => method(:parse_text_information_frame_as_number), # incomplete
     :TENC => method(:parse_general_text_information_frame),
     :TEXT => method(:parse_slash_separated_text_information_frame),
-    :TFLT => method(:parse_general_text_information_frame), # incomplete
+    :TFLT => method(:parse_TFLT),
     :TIME => method(:parse_general_text_information_frame), # incomplete
     :TIT1 => method(:parse_general_text_information_frame),
     :TIT2 => method(:parse_general_text_information_frame),
